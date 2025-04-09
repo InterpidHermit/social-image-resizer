@@ -702,14 +702,20 @@
                 // Add download functionality
                 const downloadBtn = card.querySelector('.download-btn');
                 downloadBtn.addEventListener('click', function() {
-  alert("Download button clicked!");  // <-- Add this line
+  // Create temporary link
   const link = document.createElement('a');
-                    link.href = dataUrl;
-                    link.download = generateFileName(file.name, platform, dimension, width, height);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                });
+  link.href = dataUrl;
+  link.download = "test-image.jpg";  // Fixed filename
+  
+  // Trigger download
+  document.body.appendChild(link);
+  link.click();
+  
+  // Clean up
+  setTimeout(() => {
+    document.body.removeChild(link);
+  }, 100);
+});
                 
                 imageResults.appendChild(card);
             }
