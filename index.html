@@ -697,21 +697,20 @@
                 `;
                 
                 // Add download functionality
-                const downloadBtn = card.querySelector('.download-btn');
                 downloadBtn.addEventListener('click', function() {
-  // Create temporary link
-  const link = document.createElement('a');
-  link.href = dataUrl;
-  link.download = "test-image.jpg";  // Fixed filename
-  
-  // Trigger download
-  document.body.appendChild(link);
-  link.click();
-  
-  // Clean up
-  setTimeout(() => {
-    document.body.removeChild(link);
-  }, 100);
+    // Create temporary link
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = generateFileName(file.name, platform, dimension, width, height);
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(link);
+    }, 100);
 });
                 
                 imageResults.appendChild(card);
