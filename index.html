@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Image Resizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.1/css/all.min.css">
+    <style>
+        /* Custom styles */
+        .platform-card {
+            transition: all 0.3s ease;
+        }
+        .platform-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .platform-card.selected {
+            border-color: #4F46E5;
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+        .drop-zone {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        .drop-zone:hover, .drop-zone.active {
+            border-color: #4F46E5;
+            background-color: rgba(79, 70, 229, 0.05);
+        }
+        .image-preview {
+            max-height: 300px;
+            object-fit: contain;
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        /* For PDF export optimization */
+        body {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            overflow-x: hidden;
+        }
+        /* Hide scrollbars for PDF export */
+        .overflow-auto {
+            overflow: visible !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-10 text-center">
+            <h1 class="text-4xl font-bold text-indigo-600 mb-2">Social Media Image Resizer</h1>
+            <p class="text-lg text-gray-600">Quickly resize your images for different social media platforms</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column - Upload Section -->
+            <section class="lg:col-span-5 bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4">Upload Images</h2>
+                
+                <!-- File Upload Zone -->
+                <div id="dropZone" class="drop-zone rounded-lg p-8 mb-6 text-center cursor-pointer">
+                    <i class="fas fa-cloud-upload-alt text-5xl text-gray-400 mb-4"></i>
+                    <p class="text-lg mb-2">Drag & drop your images here</p>
+                    <p class="text-gray-500 text-sm mb-4">or</p>
+                    <label class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg cursor-pointer transition">
+                        Browse Files
+                        <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+                    </label>
+                </div>
+
+                <!-- Google Drive Integration Placeholder -->
+                <div class="mb-6">
+                    <button id="googleDriveBtn" class="w-full flex items-center justify-center bg-white border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-50 transition">
+                        <svg class="w-6 h-6 mr-2" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                            <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                            <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+                            <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                            <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                            <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                            <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                        </svg>
+                        Import from Google Drive (Coming Soon)
+                    </button>
+                </div>
+
+                <!-- Uploaded Files List -->
+                <div id="fileList" class="mt-4">
+                    <h3 class="font-medium mb-2">Uploaded Images</h3>
+                    <ul id="uploadedFiles" class="space-y-2 max-h-60 overflow-auto"></ul>
+                </div>
+            </section>
+
+            <!-- Right Column - Settings & Preview -->
+            <section class="lg:col-span-7 space-y-8">
+                <!-- Platform Selection -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Select Platforms</h2>
+                    <p class="text-gray-600 mb-4">Choose the social media platforms you want to resize images for:</p>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <!-- Instagram -->
+                        <div class="platform-card border rounded-lg p-4 cursor-pointer" data-platform="instagram" data-dimensions='{"Post": "1080x1080", "Story": "1080x1920", "Profile": "320x320"}'>
+                            <div class="flex items-center mb-2">
+                                <i class="fab fa-instagram text-2xl text-pink-500 mr-2"></i>
+                                <span class="font-medium">Instagram</span>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                <div>Post: 1080×1080</div>
+                                <div>Story: 1080×1920</div>
+                                <div>Profile: 320×320</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Facebook -->
+                        <div class="platform-card border rounded-lg p-4 cursor-pointer" data-platform="facebook" data-dimensions='{"Post": "1200x630", "Cover": "820x312", "Profile": "170x170"}'>
+                            <div class="flex items-center mb-2">
+                                <i class="fab fa-facebook text-2xl text-blue-600 mr-2"></i>
+                                <span class="font-medium">Facebook</span>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                <div>Post: 1200×630</div>
+                                <div>Cover: 820×312</div>
+                                <div>Profile: 170×170</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Twitter -->
+                        <div class="platform-card border rounded-lg p-4 cursor-pointer" data-platform="twitter" data-dimensions='{"Post": "1200x675", "Header": "1500x500", "Profile": "400x400"}'>
+                            <div class="flex items-center mb-2">
+                                <i class="fab fa-twitter text-2xl text-blue-400 mr-2"></i>
+                                <span class="font-medium">Twitter</span>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                <div>Post: 1200×675</div>
+                                <div>Header: 1500×500</div>
+                                <div>Profile: 400×400</div>
+                            </div>
+                        </div>
+                        
+                        <!-- LinkedIn -->
+                        <div class="platform-card border rounded-lg p-4 cursor-pointer" data-platform="linkedin" data-dimensions='{"Post": "1200x627", "Cover": "1584x396", "Profile": "400x400"}'>
+                            <div class="flex items-center mb-2">
+                                <i class="fab fa-linkedin text-2xl text-blue-700 mr-2"></i>
+                                <span class="font-medium">LinkedIn</span>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                <div>Post: 1200×627</div>
+                                <div>Cover: 1584×396</div>
+                                <div>Profile: 400×400</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pinterest -->
+                        <div class="platform-card border rounded-lg p-4 cursor-pointer" data-platform="pinterest" data-dimensions='{"Pin": "1000x1500", "Board": "800x800", "Profile": "165x165"}'>
+                            <div class="flex items-center mb-2">
+                                <i class="fab fa-pinterest text-2xl text-red-600 mr-2"></i>
+                                <span class="font-medium">Pinterest</span>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                <div>Pin: 1000×1500</div>
+                                <div>Board: 800×800</div>
+                                <div>Profile: 165×165</div>
+                            </div>
+                        </div>
+                        
+                        <!-- YouTube -->
+                        <div class="platform-card border rounded-lg p-4 cursor-pointer" data-platform="youtube" data-dimensions='{"Thumbnail": "1280x720", "Channel Art": "2560x1440", "Profile": "800x800"}'>
+                            <div class="flex items-center mb-2">
+                                <i class="fab fa-youtube text-2xl text-red-600 mr-2"></i>
+                                <span class="font-medium">YouTube</span>
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                <div>Thumbnail: 1280×720</div>
+                                <div>Channel Art: 2560×1440</div>
+                                <div>Profile: 800×800</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Custom Dimensions -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Custom Dimensions</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2" for="customWidth">Width (px)</label>
+                            <input type="number" id="customWidth" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Width in pixels">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2" for="customHeight">Height (px)</label>
+                            <input type="number" id="customHeight" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Height in pixels">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button id="addCustomDimension" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition">
+                            Add Custom Dimension
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Quality Settings -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-4">Output Settings</h2>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2" for="qualitySlider">Image Quality</label>
+                        <input type="range" id="qualitySlider" min="0" max="100" value="90" class="w-full">
+                        <div class="flex justify-between text-sm text-gray-500">
+                            <span>Low</span>
+                            <span id="qualityValue">90%</span>
+                            <span>High</span>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2" for="formatSelect">Output Format</label>
+                        <select id="formatSelect" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="jpeg">JPEG</option>
+                            <option value="png">PNG</option>
+                            <option value="webp">WebP</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="preserveRatio" class="mr-2" checked>
+                        <label for="preserveRatio">Preserve aspect ratio</label>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-4">
+                    <button id="processBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-lg transition flex items-center justify-center" disabled>
+                        <i class="fas fa-cogs mr-2"></i> Process Images
+                    </button>
+                    <button id="downloadAllBtn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition flex items-center justify-center" disabled>
+                        <i class="fas fa-download mr-2"></i> Download All
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Processing Progress -->
+        <section id="progressSection" class="mt-8 bg-white rounded-lg shadow-lg p-6 hidden">
+            <h2 class="text-2xl font-semibold mb-4">Processing Images</h2>
+            <div class="mb-2 flex justify-between">
+                <span id="progressStatus">Processing 0/0 images...</span>
+                <span id="progressPercentage">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div id="progressBar" class="bg-indigo-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="resultsSection" class="mt-8 bg-white rounded-lg shadow-lg p-6 hidden">
+            <h2 class="text-2xl font-semibold mb-4">Resized Images</h2>
+            <div id="imageResults" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-gray-500 text-sm">
+            <p>Social Media Image Resizer - Resize your images for any platform</p>
+            <p class="mt-2">All image processing is done locally in your browser</p>
+        </footer>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileList = document.getElementById('uploadedFiles');
+            const platformCards = document.querySelectorAll('.platform-card');
+            const qualitySlider = document.getElementById('qualitySlider');
+            const qualityValue = document.getElementById('qualityValue');
+            const processBtn = document.getElementById('processBtn');
+            const downloadAllBtn = document.getElementById('downloadAllBtn');
+            const progressSection = document.getElementById('progressSection');
+            const progressBar = document.getElementById('progressBar');
+            const progressStatus = document.getElementById('progressStatus');
+            const progressPercentage = document.getElementById('progressPercentage');
+            const resultsSection = document.getElementById('resultsSection');
+            const imageResults = document.getElementById('imageResults');
+            const customWidth = document.getElementById('customWidth');
+            const customHeight = document.getElementById('customHeight');
+            const addCustomDimension = document.getElementById('addCustomDimension');
+            const preserveRatio = document.getElementById('preserveRatio');
+            const formatSelect = document.getElementById('formatSelect');
+            const googleDriveBtn = document.getElementById('googleDriveBtn');
+
+            // State variables
+            let uploadedFiles = [];
+            let selectedPlatforms = [];
+            let customDimensions = [];
+            let processedImages = [];
+
+            // Set up drag and drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+
+            function highlight() {
+                dropZone.classList.add('active');
+            }
+
+            function unhighlight() {
+                dropZone.classList.remove('active');
+            }
+
+            // Handle file drop
+            dropZone.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }
+
+            // Handle file input change
+            fileInput.addEventListener('change', function() {
+                handleFiles(this.files);
+            });
+
+            // Handle files
+            function handleFiles(files) {
+                if (files.length === 0) return;
+                
+                const validFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+                
+                if (validFiles.length === 0) {
+                    alert('Please upload valid image files (JPEG, PNG, GIF, etc.)');
+                    return;
+                }
+                
+                validFiles.forEach(file => {
+                    // Check if file already exists
+                    if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                        return;
+                    }
+                    
+                    uploadedFiles.push(file);
+                    
+                    // Create preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const li = document.createElement('li');
+                        li.className = 'flex items-center justify-between bg-gray-50 rounded-lg p-2';
+                        
+                        // Create preview thumbnail
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'flex items-center';
+                        
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'w-12 h-12 object-cover rounded mr-3';
+                        
+                        const fileInfo = document.createElement('div');
+                        fileInfo.className = 'text-sm';
+                        fileInfo.innerHTML = `
+                            <div class="font-medium truncate max-w-xs">${file.name}</div>
+                            <div class="text-gray-500">${formatFileSize(file.size)}</div>
+                        `;
+                        
+                        imgContainer.appendChild(img);
+                        imgContainer.appendChild(fileInfo);
+                        
+                        // Remove button
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'text-red-500 hover:text-red-700';
+                        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                        removeBtn.addEventListener('click', function() {
+                            uploadedFiles = uploadedFiles.filter(f => f !== file);
+                            li.remove();
+                            updateProcessButton();
+                        });
+                        
+                        li.appendChild(imgContainer);
+                        li.appendChild(removeBtn);
+                        fileList.appendChild(li);
+                        
+                        updateProcessButton();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Format file size
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            // Platform selection
+            platformCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    this.classList.toggle('selected');
+                    
+                    const platform = this.dataset.platform;
+                    const dimensions = JSON.parse(this.dataset.dimensions);
+                    
+                    if (this.classList.contains('selected')) {
+                        selectedPlatforms.push({
+                            name: platform,
+                            dimensions: dimensions
+                        });
+                    } else {
+                        selectedPlatforms = selectedPlatforms.filter(p => p.name !== platform);
+                    }
+                    
+                    updateProcessButton();
+                });
+            });
+
+            // Custom dimension
+            addCustomDimension.addEventListener('click', function() {
+                const width = parseInt(customWidth.value);
+                const height = parseInt(customHeight.value);
+                
+                if (!width || !height || width <= 0 || height <= 0) {
+                    alert('Please enter valid width and height values');
+                    return;
+                }
+                
+                // Create a custom dimension card
+                const dimensionName = `${width}×${height}`;
+                
+                // Check if this dimension already exists
+                if (customDimensions.some(d => d.name === dimensionName)) {
+                    alert('This custom dimension already exists');
+                    return;
+                }
+                
+                customDimensions.push({
+                    name: dimensionName,
+                    width: width,
+                    height: height
+                });
+                
+                // Create a new card and add it to the platforms section
+                const cardContainer = document.querySelector('.grid.grid-cols-2.md\\:grid-cols-3');
+                
+                const card = document.createElement('div');
+                card.className = 'platform-card border rounded-lg p-4 cursor-pointer selected';
+                card.dataset.platform = `custom_${width}_${height}`;
+                
+                card.innerHTML = `
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-crop-alt text-2xl text-purple-500 mr-2"></i>
+                        <span class="font-medium">Custom</span>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        <div>${dimensionName}</div>
+                    </div>
+                `;
+                
+                card.addEventListener('click', function() {
+                    this.classList.toggle('selected');
+                    
+                    if (this.classList.contains('selected')) {
+                        // Add back to selected platforms
+                        selectedPlatforms.push({
+                            name: `custom_${width}_${height}`,
+                            dimensions: { "Custom": dimensionName }
+                        });
+                    } else {
+                        // Remove from selected platforms
+                        selectedPlatforms = selectedPlatforms.filter(p => p.name !== `custom_${width}_${height}`);
+                    }
+                    
+                    updateProcessButton();
+                });
+                
+                cardContainer.appendChild(card);
+                
+                // Also add to selected platforms
+                selectedPlatforms.push({
+                    name: `custom_${width}_${height}`,
+                    dimensions: { "Custom": dimensionName }
+                });
+                
+                // Clear the input fields
+                customWidth.value = '';
+                customHeight.value = '';
+                
+                updateProcessButton();
+            });
+
+            // Quality slider
+            qualitySlider.addEventListener('input', function() {
+                qualityValue.textContent = this.value + '%';
+            });
+
+            // Google Drive button
+            googleDriveBtn.addEventListener('click', function() {
+                alert('Google Drive integration is coming soon!');
+            });
+
+            // Update process button state
+            function updateProcessButton() {
+                processBtn.disabled = uploadedFiles.length === 0 || selectedPlatforms.length === 0;
+                if (!processBtn.disabled) {
+                    processBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    processBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            }
+
+            // Process images
+            processBtn.addEventListener('click', async function() {
+                if (uploadedFiles.length === 0 || selectedPlatforms.length === 0) return;
+                
+                // Reset previous results
+                processedImages = [];
+                imageResults.innerHTML = '';
+                
+                // Show progress section
+                progressSection.classList.remove('hidden');
+                resultsSection.classList.remove('hidden');
+                
+                // Configure progress
+                const totalOperations = uploadedFiles.length * selectedPlatforms.length;
+                let completedOperations = 0;
+                
+                progressStatus.textContent = `Processing 0/${totalOperations} images...`;
+                progressPercentage.textContent = '0%';
+                progressBar.style.width = '0%';
+                
+                // Process each image for each platform
+                for (const file of uploadedFiles) {
+                    const image = await createImageFromFile(file);
+                    
+                    for (const platform of selectedPlatforms) {
+                        // Process for each dimension in the platform
+                        for (const [dimensionName, dimensionSize] of Object.entries(platform.dimensions)) {
+                            // Parse dimension
+                            let width, height;
+                            
+                            if (platform.name.startsWith('custom_')) {
+                                const customDim = customDimensions.find(d => d.name === dimensionSize);
+                                if (customDim) {
+                                    width = customDim.width;
+                                    height = customDim.height;
+                                }
+                            } else {
+                                const parts = dimensionSize.split('x');
+                                width = parseInt(parts[0]);
+                                height = parseInt(parts[1]);
+                            }
+                            
+                            // Resize the image
+                            const resizedImage = resizeImage(
+                                image, 
+                                width, 
+                                height, 
+                                preserveRatio.checked,
+                                formatSelect.value,
+                                parseInt(qualitySlider.value) / 100
+                            );
+                            
+                            // Store the processed image
+                            processedImages.push({
+                                originalFile: file,
+                                platform: platform.name,
+                                dimension: dimensionName,
+                                width: width,
+                                height: height,
+                                dataUrl: resizedImage,
+                                fileName: generateFileName(file.name, platform.name, dimensionName, width, height)
+                            });
+                            
+                            // Create result card
+                            createResultCard(file, platform.name, dimensionName, width, height, resizedImage);
+                            
+                            // Update progress
+                            completedOperations++;
+                            const percentage = Math.round((completedOperations / totalOperations) * 100);
+                            progressStatus.textContent = `Processing ${completedOperations}/${totalOperations} images...`;
+                            progressPercentage.textContent = `${percentage}%`;
+                            progressBar.style.width = `${percentage}%`;
+                        }
+                    }
+                }
+                
+                // Enable download all button
+                downloadAllBtn.disabled = false;
+                downloadAllBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                // Update progress status
+                progressStatus.textContent = `Completed processing ${totalOperations} images!`;
+            });
+
+            // Create image from file
+            function createImageFromFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = new Image();
+                        img.onload = function() {
+                            resolve(img);
+                        };
+                        img.onerror = reject;
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Resize image
+            function resizeImage(img, targetWidth, targetHeight, preserveAspectRatio, format, quality) {
+                const canvas = document.createElement('canvas');
+                let width = targetWidth;
+                let height = targetHeight;
+                
+                if (preserveAspectRatio) {
+                    const aspectRatio = img.width / img.height;
+                    
+                    if (width / height > aspectRatio) {
+                        width = height * aspectRatio;
+                    } else {
+                        height = width / aspectRatio;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Convert to the desired format
+                const mimeType = format === 'jpeg' ? 'image/jpeg' : 
+                                format === 'png' ? 'image/png' : 'image/webp';
+                
+                return canvas.toDataURL(mimeType, quality);
+            }
+
+            // Generate file name
+            function generateFileName(originalName, platform, dimension, width, height) {
+                const nameParts = originalName.split('.');
+                const extension = nameParts.pop();
+                const baseName = nameParts.join('.');
+                
+                return `${baseName}_${platform}_${dimension}_${width}x${height}.${formatSelect.value}`;
+            }
+
+            // Create result card
+            function createResultCard(file, platform, dimension, width, height, dataUrl) {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 rounded-lg overflow-hidden shadow';
+                
+                // Format platform name for display
+                const platformDisplay = platform.startsWith('custom_') ? 'Custom' : platform.charAt(0).toUpperCase() + platform.slice(1);
+                
+                card.innerHTML = `
+                    <div class="p-4">
+                        <h3 class="font-medium text-lg mb-1">${platformDisplay} - ${dimension}</h3>
+                        <p class="text-gray-500 text-sm">${width}×${height} pixels</p>
+                    </div>
+                    <div class="flex justify-center bg-white border-t border-b border-gray-200">
+                        <img src="${dataUrl}" alt="${file.name}" class="image-preview">
+                    </div>
+                    <div class="p-4 flex justify-between items-center">
+                        <div class="text-sm text-gray-500">${file.name}</div>
+                        <button class="download-btn bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1 px-3 rounded transition">
+                            <i class="fas fa-download mr-1"></i> Download
+                        </button>
+                    </div>
+                `;
+                
+                // Add download functionality
+                const downloadBtn = card.querySelector('.download-btn');
+                downloadBtn.addEventListener('click', function() {
+                    const link = document.createElement('a');
+                    link.href = dataUrl;
+                    link.download = generateFileName(file.name, platform, dimension, width, height);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+                
+                imageResults.appendChild(card);
+            }
+
+            // Download all images
+            downloadAllBtn.addEventListener('click', function() {
+                if (processedImages.length === 0) return;
+                
+                // For multiple files, we need to create a ZIP
+                if (processedImages.length > 1) {
+                    alert("For multiple files, please download them individually. Bulk download feature is coming soon!");
+                    return;
+                }
+                
+                // Download each processed image
+                processedImages.forEach(img => {
+                    const link = document.createElement('a');
+                    link.href = img.dataUrl;
+                    link.download = img.fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
