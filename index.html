@@ -338,81 +338,69 @@
 
             // Handle files
             function handleFiles(files) {
-  if (!files.length) return;
+    if (!files.length) return;
   
-  const validFiles = Array.from(files).filter(file => 
-    file.type.match('image.*') && 
-    file.size < 5_000_000 // 5MB limit
-  );
+    const validFiles = Array.from(files).filter(file => 
+        file.type.match('image.*') && 
+        file.size < 5_000_000 // 5MB limit
+    );
   
-  if (validFiles.length === 0) {
-    alert('Please upload valid images (JPEG, PNG, WEBP) under 5MB');
-    return;
-  }
+    if (validFiles.length === 0) {
+        alert('Please upload valid images (JPEG, PNG, WEBP) under 5MB');
+        return;
+    }
   
-  validFiles.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <img src="${e.target.result}" class="w-12 h-12 object-cover rounded mr-3">
-        <div>${file.name}</div>
-      `;
-      document.getElementById('uploadedFiles').appendChild(li);
-    };
-    reader.readAsDataURL(file);
-  });
+    validFiles.forEach(file => {
+        // Check if file already exists
+        if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+            return;
+        }
+        
+        uploadedFiles.push(file);
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const li = document.createElement('li');
+            li.className = 'flex items-center justify-between bg-gray-50 rounded-lg p-2';
+            
+            // Create preview thumbnail
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'flex items-center';
+            
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'w-12 h-12 object-cover rounded mr-3';
+            
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'text-sm';
+            fileInfo.innerHTML = `
+                <div class="font-medium truncate max-w-xs">${file.name}</div>
+                <div class="text-gray-500">${formatFileSize(file.size)}</div>
+            `;
+            
+            imgContainer.appendChild(img);
+            imgContainer.appendChild(fileInfo);
+            
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'text-red-500 hover:text-red-700';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.addEventListener('click', function() {
+                uploadedFiles = uploadedFiles.filter(f => f !== file);
+                li.remove();
+                updateProcessButton();
+            });
+            
+            li.appendChild(imgContainer);
+            li.appendChild(removeBtn);
+            fileList.appendChild(li);
+            
+            updateProcessButton();
+        };
+        reader.readAsDataURL(file);
+    });
 }
-                    // Check if file already exists
-                    if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
-                        return;
-                    }
-                    
-                    uploadedFiles.push(file);
-                    
-                    // Create preview
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const li = document.createElement('li');
-                        li.className = 'flex items-center justify-between bg-gray-50 rounded-lg p-2';
-                        
-                        // Create preview thumbnail
-                        const imgContainer = document.createElement('div');
-                        imgContainer.className = 'flex items-center';
-                        
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.className = 'w-12 h-12 object-cover rounded mr-3';
-                        
-                        const fileInfo = document.createElement('div');
-                        fileInfo.className = 'text-sm';
-                        fileInfo.innerHTML = `
-                            <div class="font-medium truncate max-w-xs">${file.name}</div>
-                            <div class="text-gray-500">${formatFileSize(file.size)}</div>
-                        `;
-                        
-                        imgContainer.appendChild(img);
-                        imgContainer.appendChild(fileInfo);
-                        
-                        // Remove button
-                        const removeBtn = document.createElement('button');
-                        removeBtn.className = 'text-red-500 hover:text-red-700';
-                        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-                        removeBtn.addEventListener('click', function() {
-                            uploadedFiles = uploadedFiles.filter(f => f !== file);
-                            li.remove();
-                            updateProcessButton();
-                        });
-                        
-                        li.appendChild(imgContainer);
-                        li.appendChild(removeBtn);
-                        fileList.appendChild(li);
-                        
-                        updateProcessButton();
-                    };
-                    reader.readAsDataURL(file);
-                });
-            }
 
             // Format file size
             function formatFileSize(bytes) {
@@ -640,35 +628,39 @@
             }
 
             // Resize image
-            function resizeImage(img, targetWidth, targetHeight, preserveAspectRatio, format, quality) {
-  return new Promise((resolve) => {
+           function resizeImage(img, targetWidth, targetHeight, preserveAspectRatio, format, quality) {
     const canvas = document.createElement('canvas');
+    let width = targetWidth;
+    let height = targetHeight;
+    
+    // Handle aspect ratio preservation if needed
+    if (preserveAspectRatio) {
+        const aspectRatio = img.width / img.height;
+        
+        if (targetWidth / targetHeight > aspectRatio) {
+            // Width is the constraint
+            width = targetHeight * aspectRatio;
+        } else {
+            // Height is the constraint
+            height = targetWidth / aspectRatio;
+        }
+    }
+    
     canvas.width = targetWidth;
     canvas.height = targetHeight;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
     
-    canvas.toBlob((blob) => {
-      resolve(URL.createObjectURL(blob));
-    }, `image/${format}`, quality / 100);
-  });
-}
-        
-        if (!response.ok) throw new Error('Server error');
-        const imageBlob = await response.blob();
-        resolve(URL.createObjectURL(imageBlob));
-      } catch (error) {
-        console.error('Server error:', error);
-        // Fallback to client-side resizing if backend fails
-        const fallbackCanvas = document.createElement('canvas');
-        fallbackCanvas.width = targetWidth;
-        fallbackCanvas.height = targetHeight;
-        const fallbackCtx = fallbackCanvas.getContext('2d');
-        fallbackCtx.drawImage(img, 0, 0, targetWidth, targetHeight);
-        resolve(fallbackCanvas.toDataURL(`image/${format}`, quality / 100));
-      }
-    }, 'image/jpeg');
-  });
+    // Optional: fill background with white
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Calculate centering if needed
+    const x = (targetWidth - width) / 2;
+    const y = (targetHeight - height) / 2;
+    
+    ctx.drawImage(img, x, y, width, height);
+    
+    return canvas.toDataURL(`image/${format}`, quality);
 }
 
             // Generate file name
