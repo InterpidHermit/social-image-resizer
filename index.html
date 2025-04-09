@@ -338,16 +338,31 @@
 
             // Handle files
             function handleFiles(files) {
-                if (files.length === 0) return;
-                
-                const validFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-                
-                if (validFiles.length === 0) {
-                    alert('Please upload valid image files (JPEG, PNG, GIF, etc.)');
-                    return;
-                }
-                
-                validFiles.forEach(file => {
+  if (!files.length) return;
+  
+  const validFiles = Array.from(files).filter(file => 
+    file.type.match('image.*') && 
+    file.size < 5_000_000 // 5MB limit
+  );
+  
+  if (validFiles.length === 0) {
+    alert('Please upload valid images (JPEG, PNG, WEBP) under 5MB');
+    return;
+  }
+  
+  validFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <img src="${e.target.result}" class="w-12 h-12 object-cover rounded mr-3">
+        <div>${file.name}</div>
+      `;
+      document.getElementById('uploadedFiles').appendChild(li);
+    };
+    reader.readAsDataURL(file);
+  });
+}
                     // Check if file already exists
                     if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
                         return;
