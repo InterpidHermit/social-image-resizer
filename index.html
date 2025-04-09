@@ -625,29 +625,21 @@
             }
 
             // Resize image
-            async function resizeImage(img, targetWidth, targetHeight, preserveAspectRatio, format, quality) {
-  // Convert image to Blob (for uploading)
-  const canvas = document.createElement('canvas');
-  canvas.width = img.width;
-  canvas.height = img.height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0);
-
+            async function resizeImage(img, width, height, format, quality) {
   return new Promise((resolve) => {
-    canvas.toBlob(async (blob) => {
-      const formData = new FormData();
-      formData.append('image', blob, 'image.jpg');
-      formData.append('width', targetWidth);
-      formData.append('height', targetHeight);
-      formData.append('format', format);
-      formData.append('quality', quality);
-
-      try {
-        // Send to your Render backend
-        const response = await fetch('https://image-resizer-backend.onrender.com/resize', {
-          method: 'POST',
-          body: formData
-        });
+    // Step 1: Draw image on canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+    
+    // Step 2: Convert to Blob (best for downloads)
+    canvas.toBlob((blob) => {
+      resolve(URL.createObjectURL(blob));
+    }, `image/${format}`, quality / 100);
+  });
+}
         
         if (!response.ok) throw new Error('Server error');
         const imageBlob = await response.blob();
