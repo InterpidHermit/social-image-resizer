@@ -702,7 +702,8 @@
                 // Add download functionality
                 const downloadBtn = card.querySelector('.download-btn');
                 downloadBtn.addEventListener('click', function() {
-                    const link = document.createElement('a');
+  alert("Download button clicked!");  // <-- Add this line
+  const link = document.createElement('a');
                     link.href = dataUrl;
                     link.download = generateFileName(file.name, platform, dimension, width, height);
                     document.body.appendChild(link);
