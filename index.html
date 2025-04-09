@@ -640,16 +640,14 @@
             }
 
             // Resize image
-            async function resizeImage(img, width, height, format, quality) {
+            function resizeImage(img, targetWidth, targetHeight, preserveAspectRatio, format, quality) {
   return new Promise((resolve) => {
-    // Step 1: Draw image on canvas
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, width, height);
+    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
     
-    // Step 2: Convert to Blob (best for downloads)
     canvas.toBlob((blob) => {
       resolve(URL.createObjectURL(blob));
     }, `image/${format}`, quality / 100);
